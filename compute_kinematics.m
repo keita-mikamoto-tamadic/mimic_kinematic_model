@@ -32,6 +32,7 @@ c_links_L = cell(model.link_num, 1);
 
 for i = 1:model.link_num
     if i == 1
+        % 最初のリンクはベースから
         p_links_R{i} = p_b + rot_R_total{i} * model.p_links_R{i};
         p_links_L{i} = p_b + rot_L_total{i} * model.p_links_L{i};
     else

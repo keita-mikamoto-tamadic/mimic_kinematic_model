@@ -5,14 +5,22 @@ q = zeros(12,1);
 dq = zeros(12,1);
 tau = zeros(6,1);
 
-q(4:6) = deg2rad([10; 5; 0]);
-q(7:9) = deg2rad([10; 20; 0]);
-q(10:12) = deg2rad([-10; -20; 0]);
+q(4:6) = deg2rad([0; 0; 30]);
+q(7:9) = deg2rad([0; 0; 0]);
+q(10:12) = deg2rad([0; 0; 0]);
+q(7) = pi/4;
+q(8) = -2*q(7);
+q(10) = pi/4;
+q(11) = -2*q(10);
 
+% v_b は y軸方向へは直接動けない（ノンホロノミック）
 v_b = [0.1; 0; 0];
 w_b = [0; 0.1; 0];
 
 kin = compute_kinematics(q, model);
+% ロボットの3D可視化
+visualize_robot(kin, model);
+
 [vLinks_R, omegaLinks_R, vLinks_L, omegaLinks_L] = forward_velocity(v_b, w_b, q, dq, model);
 
 dq(1:3) = v_b;

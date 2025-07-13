@@ -17,5 +17,5 @@ model.p_links_R = { [l1_x; l1_y; l1_z]; [l2_x; l2_y; l2_z]; [wR_x; wR_y; wR_z] }
 model.p_links_L = { [l3_x; l3_y; l3_z]; [l4_x; l4_y; l4_z]; [wL_x; wL_y; wL_z] };
 
 model.ry = @(theta) rodrigues([0; 1; 0], theta);
-model.r_base = @(phi, theta, psi) rodrigues([0; 0; 1], psi) * rodrigues([0; 1; 0], theta) * rodrigues([1; 0; 0], phi);
+model.r_base = @(phi, theta, psi) rodrigues([1; 0; 0], phi) * rodrigues([0; 1; 0], theta) * rodrigues([0; 0; 1], psi);
 end
