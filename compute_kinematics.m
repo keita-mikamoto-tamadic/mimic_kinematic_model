@@ -21,8 +21,8 @@ rot_R_total{1} = R_b;
 rot_L_total{1} = R_b;
 
 for i = 1:model.link_num
-    rot_R_total{i+1} = rot_R{i} * rot_R_total{i};
-    rot_L_total{i+1} = rot_L{i} * rot_L_total{i};
+    rot_R_total{i+1} = rot_R_total{i} * rot_R{i};
+    rot_L_total{i+1} = rot_L_total{i} * rot_L{i};
 end
 
 p_links_R = cell(model.link_num, 1);
