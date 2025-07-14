@@ -9,8 +9,8 @@ kin = compute_kinematics(q, model);
 p_wheel_R = kin.p_links_R{3};  % 右輪中心位置
 p_wheel_L = kin.p_links_L{3};  % 左輪中心位置
 
-% 輪の半径（モデルパラメータから推定）
-wheel_radius = 0.05;  % 5cm（適当な値、実際のモデルに合わせて調整）
+% 輪の半径（パラメータファイルから取得）
+wheel_radius = model.wheel_radius;
 
 % 拘束条件：両輪の接触点がZ=0平面に接触
 phi = [

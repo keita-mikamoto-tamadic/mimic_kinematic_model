@@ -49,7 +49,7 @@ dq0 = zeros(12, 1);
 
 % 両輪が床面に接触するように高さを調整
 kin = compute_kinematics(q0, model);
-wheel_radius = 0.05;  % タイヤ半径
+wheel_radius = model.wheel_radius;  % タイヤ半径
 
 % 右輪と左輪の接触点高さを確認
 wheel_height_R = kin.p_links_R{3}(3);

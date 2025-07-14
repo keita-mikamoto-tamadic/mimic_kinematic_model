@@ -3,6 +3,7 @@ param_definition;
 
 model.g_vec = [0; 0; -9.81];
 model.link_num = 3;
+model.wheel_radius = wheel_radius;
 model.m_b = m(1);
 model.m_link_R = m(2:4);
 model.m_link_L = m(5:7);
