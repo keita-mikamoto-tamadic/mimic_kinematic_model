@@ -31,21 +31,14 @@ for i = link_num:-1:1
     % 関節軸方向ベクトル（Y軸周り）
     joint_axis = R(:,2);
     
-    % 角速度は親の角速度に自身の関節角速度を加算
-    if i == 1
-        omega_link = omega_b + joint_axis * dq(6+i);
-        domega_link = domega_b + joint_axis * ddq(6+i);
-    else
-        % 親リンクの影響を考慮
-        parent_R = kin.rot_R_total{i};
-        omega_link = omega_b;
-        domega_link = domega_b;
-        % i番目までの関節の影響を累積
-        for j = 1:i
-            joint_axis_j = kin.rot_R_total{j+1}(:,2);
-            omega_link = omega_link + joint_axis_j * dq(6+j);
-            domega_link = domega_link + joint_axis_j * ddq(6+j);
-        end
+    % 角速度の計算（運動連鎖を考慮）
+    omega_link = omega_b;
+    domega_link = domega_b;
+    % i番目までの関節の影響を累積
+    for j = 1:i
+        joint_axis_j = kin.rot_R_total{j+1}(:,2);
+        omega_link = omega_link + joint_axis_j * dq(6+j);
+        domega_link = domega_link + joint_axis_j * ddq(6+j);
     end
     
     % 並進加速度の計算（運動連鎖を考慮）
@@ -67,21 +60,14 @@ for i = link_num:-1:1
     % 関節軸方向ベクトル（Y軸周り）
     joint_axis = R(:,2);
     
-    % 角速度は親の角速度に自身の関節角速度を加算
-    if i == 1
-        omega_link = omega_b + joint_axis * dq(9+i);
-        domega_link = domega_b + joint_axis * ddq(9+i);
-    else
-        % 親リンクの影響を考慮
-        parent_R = kin.rot_L_total{i};
-        omega_link = omega_b;
-        domega_link = domega_b;
-        % i番目までの関節の影響を累積
-        for j = 1:i
-            joint_axis_j = kin.rot_L_total{j+1}(:,2);
-            omega_link = omega_link + joint_axis_j * dq(9+j);
-            domega_link = domega_link + joint_axis_j * ddq(9+j);
-        end
+    % 角速度の計算（運動連鎖を考慮）
+    omega_link = omega_b;
+    domega_link = domega_b;
+    % i番目までの関節の影響を累積
+    for j = 1:i
+        joint_axis_j = kin.rot_L_total{j+1}(:,2);
+        omega_link = omega_link + joint_axis_j * dq(9+j);
+        domega_link = domega_link + joint_axis_j * ddq(9+j);
     end
     
     % 並進加速度の計算（運動連鎖を考慮）

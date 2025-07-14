@@ -14,9 +14,6 @@ function vel = compute_velocity(q, dq, kin, model, dt)
 %   vel.vc_links_R/L   : 各リンク重心速度（cell）
 
 vee = @(S) [S(3,2); S(1,3); S(2,1)];
-skew = @(v) [  0, -v(3),  v(2);
-               v(3),  0, -v(1);
-              -v(2), v(1),  0];
 
 % ---- ボディ速度 ----
 v_b = dq(1:3);  % x_b, y_b, z_b の時間微分
@@ -63,10 +60,10 @@ for i = 1:link_num
     omegaLinks_R{i+1} = vee(omega_skew);
 
     rel_pos = R * model.p_links_R{i};
-    vLinks_R{i+1} = vLinks_R{i} + skew(omegaLinks_R{i}) * rel_pos;
+    vLinks_R{i+1} = vLinks_R{i} + hat(omegaLinks_R{i}) * rel_pos;
 
     rel_cog = R * model.c_links_R{i};
-    vc_links_R{i} = vLinks_R{i+1} + skew(omegaLinks_R{i+1}) * rel_cog;
+    vc_links_R{i} = vLinks_R{i+1} + hat(omegaLinks_R{i+1}) * rel_cog;
 end
 
 % ---- 左脚 ----
@@ -74,7 +71,7 @@ for i = 1:link_num
     R = kin.rot_L_total{i+1};
 
     q_fwd = q;
-    q_fwd(6+i+1) = q(6+i+1) + dt * dq(6+i+1);  % theta3, theta4, wheelL
+    q_fwd(9+i) = q(9+i) + dt * dq(9+i);  % theta3, theta4, wheelL
     kin_fwd = compute_kinematics(q_fwd, model);
     R_fwd = kin_fwd.rot_L_total{i+1};
     R_dot = (R_fwd - R) / dt;
@@ -83,10 +80,10 @@ for i = 1:link_num
     omegaLinks_L{i+1} = vee(omega_skew);
 
     rel_pos = R * model.p_links_L{i};
-    vLinks_L{i+1} = vLinks_L{i} + skew(omegaLinks_L{i}) * rel_pos;
+    vLinks_L{i+1} = vLinks_L{i} + hat(omegaLinks_L{i}) * rel_pos;
 
     rel_cog = R * model.c_links_L{i};
-    vc_links_L{i} = vLinks_L{i+1} + skew(omegaLinks_L{i+1}) * rel_cog;
+    vc_links_L{i} = vLinks_L{i+1} + hat(omegaLinks_L{i+1}) * rel_cog;
 end
 
 % ---- 出力構造体 ----

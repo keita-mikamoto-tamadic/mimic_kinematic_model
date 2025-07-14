@@ -12,12 +12,6 @@ for i = 1:n
     [f_b, tau_] = inverse_dynamics(q, dq, ddq, model);
     M(:,i) = [f_b; tau_] - b;
 end
-disp('rank(M):');
-disp(rank(M));
-disp('cond(M):');
-disp(cond(M));
-disp('M =');
-disp(M);
 
 
 % 数値的な安定性のために小さな正則化項を追加
