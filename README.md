@@ -244,7 +244,7 @@ $$\tau_{\mathrm{equiv}} = \tau_1 + 2\tau_2$$
 
 本実装では**単位ベクトル法**を使用して効率的に運動方程式を導出します：
 
-$$\boldsymbol{M}(\boldsymbol{q})\ddot{\boldsymbol{q}} + \boldsymbol{C}(\boldsymbol{q},\dot{\boldsymbol{q}})\dot{\boldsymbol{q}} + \boldsymbol{G}(\boldsymbol{q}) = \boldsymbol{\tau} + \boldsymbol{J}^{\mathsf{T}} \boldsymbol{\lambda}$$
+$\boldsymbol{M}(\boldsymbol{q})\ddot{\boldsymbol{q}} + \boldsymbol{C}(\boldsymbol{q},\dot{\boldsymbol{q}})\dot{\boldsymbol{q}} + \boldsymbol{G}(\boldsymbol{q}) = \boldsymbol{\tau} + \boldsymbol{J}^{\mathsf{T}} \boldsymbol{\lambda}$
 
 ここで：
 - $\boldsymbol{M}(\boldsymbol{q}) \in \mathbb{R}^{n \times n}$: 慣性行列
@@ -324,7 +324,7 @@ C_expand = [eye(6),    zeros(6,4);     % ベース部分
 
 平衡点 $(\boldsymbol{q}_0, \dot{\boldsymbol{q}}_0 = \boldsymbol{0})$ 周りでTaylor 1次展開：
 
-$$\delta\dot{\boldsymbol{x}} = \boldsymbol{A} \delta\boldsymbol{x} + \boldsymbol{B} \delta\boldsymbol{u}$$
+$\delta\dot{\boldsymbol{x}} = \boldsymbol{A} \delta\boldsymbol{x} + \boldsymbol{B} \delta\boldsymbol{u}$
 
 削減モデルでは：
 - 状態変数: $\boldsymbol{x} \in \mathbb{R}^{20}$（削減モデルの位置・速度）
@@ -336,7 +336,7 @@ $$\delta\dot{\boldsymbol{x}} = \boldsymbol{A} \delta\boldsymbol{x} + \boldsymbol
 
 ゼロ次ホールド（ZOH）による厳密離散化：
 
-$$\boldsymbol{x}[k+1] = \boldsymbol{A}_{\mathrm{d}} \boldsymbol{x}[k] + \boldsymbol{B}_{\mathrm{d}} \boldsymbol{u}[k]$$
+$\boldsymbol{x}[k+1] = \boldsymbol{A}_{\mathrm{d}} \boldsymbol{x}[k] + \boldsymbol{B}_{\mathrm{d}} \boldsymbol{u}[k]$
 
 推奨サンプリング時間：
 - **$T = 0.01\,\mathrm{s}$ (100Hz)**: 安定・実用的（推奨）
@@ -344,17 +344,13 @@ $$\boldsymbol{x}[k+1] = \boldsymbol{A}_{\mathrm{d}} \boldsymbol{x}[k] + \boldsym
 
 ### 7. LQR最適制御
 
-削減モデルでのコスト関数：
-$$J = \sum_{k=0}^{\infty} \left( \boldsymbol{x}[k]^{\mathsf{T}} \boldsymbol{Q} \boldsymbol{x}[k] + \boldsymbol{u}[k]^{\mathsf{T}} \boldsymbol{R} \boldsymbol{u}[k] \right)$$
+削減モデルでのコスト関数：$J = \sum_{k=0}^{\infty} \left( \boldsymbol{x}[k]^{\mathsf{T}} \boldsymbol{Q} \boldsymbol{x}[k] + \boldsymbol{u}[k]^{\mathsf{T}} \boldsymbol{R} \boldsymbol{u}[k] \right)$
 
 最適フィードバックゲイン：
-$$\begin{align}
-\boldsymbol{u} &= -\boldsymbol{K} \boldsymbol{x} \\
-\boldsymbol{K} &= \left(\boldsymbol{R} + \boldsymbol{B}_{\mathrm{d}}^{\mathsf{T}} \boldsymbol{P} \boldsymbol{B}_{\mathrm{d}}\right)^{-1} \boldsymbol{B}_{\mathrm{d}}^{\mathsf{T}} \boldsymbol{P} \boldsymbol{A}_{\mathrm{d}}
-\end{align}$$
+- $\boldsymbol{u} = -\boldsymbol{K} \boldsymbol{x}$
+- $\boldsymbol{K} = \left(\boldsymbol{R} + \boldsymbol{B}_{\mathrm{d}}^{\mathsf{T}} \boldsymbol{P} \boldsymbol{B}_{\mathrm{d}}\right)^{-1} \boldsymbol{B}_{\mathrm{d}}^{\mathsf{T}} \boldsymbol{P} \boldsymbol{A}_{\mathrm{d}}$
 
-制御入力：
-$$\boldsymbol{u} = \begin{bmatrix} \tau_{1,\mathrm{R}} \\ \tau_{\mathrm{wheel,R}} \\ \tau_{1,\mathrm{L}} \\ \tau_{\mathrm{wheel,L}} \end{bmatrix}$$
+制御入力：$\boldsymbol{u} = \begin{bmatrix} \tau_{1,\mathrm{R}} \\ \tau_{\mathrm{wheel,R}} \\ \tau_{1,\mathrm{L}} \\ \tau_{\mathrm{wheel,L}} \end{bmatrix}$
 
 ## 実装詳細
 
@@ -427,7 +423,7 @@ R = 0.001 * eye(4);        % 制御入力（超低重み）
 ### 3. 制御実装
 
 #### 3.1 制御入力の計算
-$$\boldsymbol{u} = -\boldsymbol{K} (\boldsymbol{x} - \boldsymbol{x}_{\mathrm{eq}}) + \boldsymbol{u}_{\mathrm{eq}}$$
+$\boldsymbol{u} = -\boldsymbol{K} (\boldsymbol{x} - \boldsymbol{x}_{\mathrm{eq}}) + \boldsymbol{u}_{\mathrm{eq}}$
 
 **詳細：**
 - $\boldsymbol{x} \in \mathbb{R}^{20}$: 現在の状態変数
