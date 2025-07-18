@@ -205,28 +205,32 @@ visualize_robot.m            # ロボット可視化
 ### 1. 制約条件
 
 膝関節角度制約：
-$$\theta_{2R} = 2\theta_{1R}, \quad \theta_{2L} = 2\theta_{1L}$$
+$$\theta_{2,\mathrm{R}} = 2\theta_{1,\mathrm{R}}, \qquad \theta_{2,\mathrm{L}} = 2\theta_{1,\mathrm{L}}$$
 
 速度制約：
-$$\dot{\theta}_{2R} = 2\dot{\theta}_{1R}, \quad \dot{\theta}_{2L} = 2\dot{\theta}_{1L}$$
+$$\dot{\theta}_{2,\mathrm{R}} = 2\dot{\theta}_{1,\mathrm{R}}, \qquad \dot{\theta}_{2,\mathrm{L}} = 2\dot{\theta}_{1,\mathrm{L}}$$
 
 加速度制約：
-$$\ddot{\theta}_{2R} = 2\ddot{\theta}_{1R}, \quad \ddot{\theta}_{2L} = 2\ddot{\theta}_{1L}$$
+$$\ddot{\theta}_{2,\mathrm{R}} = 2\ddot{\theta}_{1,\mathrm{R}}, \qquad \ddot{\theta}_{2,\mathrm{L}} = 2\ddot{\theta}_{1,\mathrm{L}}$$
 
 ### 2. 膝トルクの2次関数
 
 膝トルク自動生成：
-$$\tau_{knee} = 0.000718\theta_1^2 - 0.006939\theta_1 + 0.990022$$
+$$\tau_{\mathrm{knee}} = 0.000718\,\theta_1^2 - 0.006939\,\theta_1 + 0.990022$$
 
 ### 3. 仮想仕事の原理による統合
 
-仮想変位：$\delta\theta_1, \delta\theta_2 = 2\delta\theta_1$
+仮想変位：$\delta\theta_1, \,\delta\theta_2 = 2\delta\theta_1$
 
 仮想仕事：
-$$\delta W = \tau_1\delta\theta_1 + \tau_2\delta\theta_2 = \tau_1\delta\theta_1 + \tau_2(2\delta\theta_1) = (\tau_1 + 2\tau_2)\delta\theta_1$$
+$$\begin{align}
+\delta W &= \tau_1\delta\theta_1 + \tau_2\delta\theta_2 \\
+&= \tau_1\delta\theta_1 + \tau_2(2\delta\theta_1) \\
+&= (\tau_1 + 2\tau_2)\delta\theta_1
+\end{align}$$
 
 等価トルク：
-$$\tau_{equiv} = \tau_1 + 2\tau_2$$
+$$\tau_{\mathrm{equiv}} = \tau_1 + 2\tau_2$$
 
 ### 4. 制御自由度の削減
 - **元の系**: 12DOF → 6個の関節トルク入力
@@ -240,60 +244,60 @@ $$\tau_{equiv} = \tau_1 + 2\tau_2$$
 
 本実装では**単位ベクトル法**を使用して効率的に運動方程式を導出します：
 
-$$M(q)\ddot{q} + C(q,\dot{q})\dot{q} + G(q) = \tau + J^T \lambda$$
+$$\boldsymbol{M}(\boldsymbol{q})\ddot{\boldsymbol{q}} + \boldsymbol{C}(\boldsymbol{q},\dot{\boldsymbol{q}})\dot{\boldsymbol{q}} + \boldsymbol{G}(\boldsymbol{q}) = \boldsymbol{\tau} + \boldsymbol{J}^{\mathsf{T}} \boldsymbol{\lambda}$$
 
 ここで：
-- $M(q)$: 慣性行列
-- $C(q,\dot{q})$: コリオリ・遠心力項
-- $G(q)$: 重力項
-- $\tau$: 関節トルク
-- $J^T \lambda$: 制約力
+- $\boldsymbol{M}(\boldsymbol{q}) \in \mathbb{R}^{n \times n}$: 慣性行列
+- $\boldsymbol{C}(\boldsymbol{q},\dot{\boldsymbol{q}}) \in \mathbb{R}^{n \times n}$: コリオリ・遠心力項
+- $\boldsymbol{G}(\boldsymbol{q}) \in \mathbb{R}^{n}$: 重力項
+- $\boldsymbol{\tau} \in \mathbb{R}^{n}$: 関節トルク
+- $\boldsymbol{J}^{\mathsf{T}} \boldsymbol{\lambda} \in \mathbb{R}^{n}$: 制約力
 
 ### 2. 制約条件
 
 **床接触制約（両車輪が床面に接触）**：
-$$\Phi(q) = \begin{bmatrix} z_{right\_wheel} \\ z_{left\_wheel} \end{bmatrix} = 0$$
+$$\boldsymbol{\Phi}_{\mathrm{ground}}(\boldsymbol{q}) = \begin{bmatrix} z_{\mathrm{wheel,R}} \\ z_{\mathrm{wheel,L}} \end{bmatrix} = \boldsymbol{0}$$
 
 **膝関節制約**：
-$$\Phi_{joint}(q) = \begin{bmatrix} \theta_{2R} - 2\theta_{1R} \\ \theta_{2L} - 2\theta_{1L} \end{bmatrix} = 0$$
+$$\boldsymbol{\Phi}_{\mathrm{joint}}(\boldsymbol{q}) = \begin{bmatrix} \theta_{2,\mathrm{R}} - 2\theta_{1,\mathrm{R}} \\ \theta_{2,\mathrm{L}} - 2\theta_{1,\mathrm{L}} \end{bmatrix} = \boldsymbol{0}$$
 
 制約の時間微分：
-$$J(q)\dot{q} = 0 \quad \text{（速度制約）}$$
-$$\dot{J}\dot{q} + J\ddot{q} = 0 \quad \text{（加速度制約）}$$
+$$\boldsymbol{J}(\boldsymbol{q})\dot{\boldsymbol{q}} = \boldsymbol{0} \quad \text{（速度制約）}$$
+$$\dot{\boldsymbol{J}}\dot{\boldsymbol{q}} + \boldsymbol{J}\ddot{\boldsymbol{q}} = \boldsymbol{0} \quad \text{（加速度制約）}$$
 
 ### 3. 制約付き運動方程式とラグランジュ未定乗数法
 
 #### 3.1 制約条件の統合
 
 床接触制約と膝関節制約を統合：
-$$\Phi_{total}(q) = \begin{bmatrix} 
-z_{right\_wheel} - r_{wheel} \\ 
-z_{left\_wheel} - r_{wheel} \\
-\theta_{2R} - 2\theta_{1R} \\
-\theta_{2L} - 2\theta_{1L}
-\end{bmatrix} = 0$$
+$$\boldsymbol{\Phi}_{\mathrm{total}}(\boldsymbol{q}) = \begin{bmatrix} 
+z_{\mathrm{wheel,R}} - r_{\mathrm{wheel}} \\ 
+z_{\mathrm{wheel,L}} - r_{\mathrm{wheel}} \\
+\theta_{2,\mathrm{R}} - 2\theta_{1,\mathrm{R}} \\
+\theta_{2,\mathrm{L}} - 2\theta_{1,\mathrm{L}}
+\end{bmatrix} = \boldsymbol{0}$$
 
 #### 3.2 制約付き運動方程式
 
 $$\begin{bmatrix} 
-M(q) & -J^T(q) \\ 
-J(q) & 0 
+\boldsymbol{M}(\boldsymbol{q}) & -\boldsymbol{J}^{\mathsf{T}}(\boldsymbol{q}) \\ 
+\boldsymbol{J}(\boldsymbol{q}) & \boldsymbol{0} 
 \end{bmatrix} 
 \begin{bmatrix} 
-\ddot{q} \\ 
-\lambda 
+\ddot{\boldsymbol{q}} \\ 
+\boldsymbol{\lambda} 
 \end{bmatrix} = 
 \begin{bmatrix} 
--C(q,\dot{q})\dot{q} - G(q) + \tau \\ 
--\dot{J}(q,\dot{q})\dot{q} 
+-\boldsymbol{C}(\boldsymbol{q},\dot{\boldsymbol{q}})\dot{\boldsymbol{q}} - \boldsymbol{G}(\boldsymbol{q}) + \boldsymbol{\tau} \\ 
+-\dot{\boldsymbol{J}}(\boldsymbol{q},\dot{\boldsymbol{q}})\dot{\boldsymbol{q}} 
 \end{bmatrix}$$
 
 #### 3.3 ラグランジュ乗数の物理的意味
 
-- $\lambda_1$: 右車輪の床反力 [N]
-- $\lambda_2$: 左車輪の床反力 [N]
-- $\lambda_3$: 右膝関節の制約力 [Nm]
-- $\lambda_4$: 左膝関節の制約力 [Nm]
+- $\lambda_1$: 右車輪の床反力 $[\mathrm{N}]$
+- $\lambda_2$: 左車輪の床反力 $[\mathrm{N}]$
+- $\lambda_3$: 右膝関節の制約力 $[\mathrm{N \cdot m}]$
+- $\lambda_4$: 左膝関節の制約力 $[\mathrm{N \cdot m}]$
 
 ### 4. 削減モデルの構築
 
@@ -318,36 +322,36 @@ C_expand = [eye(6),    zeros(6,4);     % ベース部分
 
 ### 5. 線形化
 
-平衡点 $(q_0, \dot{q}_0 = 0)$ 周りでTaylor 1次展開：
+平衡点 $(\boldsymbol{q}_0, \dot{\boldsymbol{q}}_0 = \boldsymbol{0})$ 周りでTaylor 1次展開：
 
-$$\delta\dot{x} = A \delta x + B \delta u$$
+$$\delta\dot{\boldsymbol{x}} = \boldsymbol{A} \delta\boldsymbol{x} + \boldsymbol{B} \delta\boldsymbol{u}$$
 
 削減モデルでは：
-- 状態変数: 20次元（削減モデルの位置・速度）
-- 入力変数: 6次元 → 4次元（33.3%削減）
-- システム行列: $A \in \mathbb{R}^{20 \times 20}$
-- 入力行列: $B \in \mathbb{R}^{20 \times 4}$
+- 状態変数: $\boldsymbol{x} \in \mathbb{R}^{20}$（削減モデルの位置・速度）
+- 入力変数: $\boldsymbol{u} \in \mathbb{R}^{6} \rightarrow \mathbb{R}^{4}$（33.3%削減）
+- システム行列: $\boldsymbol{A} \in \mathbb{R}^{20 \times 20}$
+- 入力行列: $\boldsymbol{B} \in \mathbb{R}^{20 \times 4}$
 
 ### 6. 離散化
 
 ゼロ次ホールド（ZOH）による厳密離散化：
 
-$$x[k+1] = A_d x[k] + B_d u[k]$$
+$$\boldsymbol{x}[k+1] = \boldsymbol{A}_{\mathrm{d}} \boldsymbol{x}[k] + \boldsymbol{B}_{\mathrm{d}} \boldsymbol{u}[k]$$
 
 推奨サンプリング時間：
-- **T = 0.01s (100Hz)**: 安定・実用的（推奨）
-- **T = 0.005s (200Hz)**: より高精度
+- **$T = 0.01\,\mathrm{s}$ (100Hz)**: 安定・実用的（推奨）
+- **$T = 0.005\,\mathrm{s}$ (200Hz)**: より高精度
 
 ### 7. LQR最適制御
 
 削減モデルでのコスト関数：
-$$J = \sum_{k=0}^{\infty} (x[k]^T Q x[k] + u[k]^T R u[k])$$
+$$J = \sum_{k=0}^{\infty} \left( \boldsymbol{x}[k]^{\mathsf{T}} \boldsymbol{Q} \boldsymbol{x}[k] + \boldsymbol{u}[k]^{\mathsf{T}} \boldsymbol{R} \boldsymbol{u}[k] \right)$$
 
 最適フィードバックゲイン：
-$$u = -K x, \quad K = (R + B_d^T P B_d)^{-1} B_d^T P A_d$$
+$$\boldsymbol{u} = -\boldsymbol{K} \boldsymbol{x}, \quad \boldsymbol{K} = \left(\boldsymbol{R} + \boldsymbol{B}_{\mathrm{d}}^{\mathsf{T}} \boldsymbol{P} \boldsymbol{B}_{\mathrm{d}}\right)^{-1} \boldsymbol{B}_{\mathrm{d}}^{\mathsf{T}} \boldsymbol{P} \boldsymbol{A}_{\mathrm{d}}$$
 
 制御入力：
-$$u = \begin{bmatrix} \tau_{1R} \\ \tau_{wheel\_R} \\ \tau_{1L} \\ \tau_{wheel\_L} \end{bmatrix}$$
+$$\boldsymbol{u} = \begin{bmatrix} \tau_{1,\mathrm{R}} \\ \tau_{\mathrm{wheel,R}} \\ \tau_{1,\mathrm{L}} \\ \tau_{\mathrm{wheel,L}} \end{bmatrix}$$
 
 ## 実装詳細
 
@@ -420,16 +424,16 @@ R = 0.001 * eye(4);        % 制御入力（超低重み）
 ### 3. 制御実装
 
 #### 3.1 制御入力の計算
-$$u = -K (x - x_{eq}) + u_{eq}$$
+$$\boldsymbol{u} = -\boldsymbol{K} (\boldsymbol{x} - \boldsymbol{x}_{\mathrm{eq}}) + \boldsymbol{u}_{\mathrm{eq}}$$
 
 **詳細：**
-- $x \in \mathbb{R}^{20}$: 現在の状態変数
-- $x_{eq} \in \mathbb{R}^{20}$: 平衡点状態変数
-- $(x - x_{eq}) \in \mathbb{R}^{20}$: 状態変数の偏差
-- $K \in \mathbb{R}^{4 \times 20}$: フィードバックゲイン行列
-- $-K (x - x_{eq}) \in \mathbb{R}^{4}$: 偏差に基づくフィードバック制御量
-- $u_{eq} \in \mathbb{R}^{4}$: 平衡点制御入力
-- $u \in \mathbb{R}^{4}$: 最終制御入力
+- $\boldsymbol{x} \in \mathbb{R}^{20}$: 現在の状態変数
+- $\boldsymbol{x}_{\mathrm{eq}} \in \mathbb{R}^{20}$: 平衡点状態変数
+- $(\boldsymbol{x} - \boldsymbol{x}_{\mathrm{eq}}) \in \mathbb{R}^{20}$: 状態変数の偏差
+- $\boldsymbol{K} \in \mathbb{R}^{4 \times 20}$: フィードバックゲイン行列
+- $-\boldsymbol{K} (\boldsymbol{x} - \boldsymbol{x}_{\mathrm{eq}}) \in \mathbb{R}^{4}$: 偏差に基づくフィードバック制御量
+- $\boldsymbol{u}_{\mathrm{eq}} \in \mathbb{R}^{4}$: 平衡点制御入力
+- $\boldsymbol{u} \in \mathbb{R}^{4}$: 最終制御入力
 
 #### 3.2 制御の物理的意味
 1. **状態偏差の検出**: (x - x_eq) で目標状態からのずれを計算
@@ -455,37 +459,37 @@ end
 
 #### 3.4 制御入力の構成
 削減モデルの制御入力（4次元）：
-$$u = \begin{bmatrix} 
-\tau_{1R,equiv} \\ 
-\tau_{wheel,R} \\ 
-\tau_{1L,equiv} \\ 
-\tau_{wheel,L} 
+$$\boldsymbol{u} = \begin{bmatrix} 
+\tau_{1,\mathrm{R,equiv}} \\ 
+\tau_{\mathrm{wheel,R}} \\ 
+\tau_{1,\mathrm{L,equiv}} \\ 
+\tau_{\mathrm{wheel,L}} 
 \end{bmatrix}$$
 
 ここで：
-- $\tau_{1R,equiv}$: 右脚股関節等価トルク（膝トルク統合済み）
-- $\tau_{wheel,R}$: 右脚車輪トルク
-- $\tau_{1L,equiv}$: 左脚股関節等価トルク（膝トルク統合済み）
-- $\tau_{wheel,L}$: 左脚車輪トルク
+- $\tau_{1,\mathrm{R,equiv}}$: 右脚股関節等価トルク（膝トルク統合済み）$[\mathrm{N \cdot m}]$
+- $\tau_{\mathrm{wheel,R}}$: 右脚車輪トルク $[\mathrm{N \cdot m}]$
+- $\tau_{1,\mathrm{L,equiv}}$: 左脚股関節等価トルク（膝トルク統合済み）$[\mathrm{N \cdot m}]$
+- $\tau_{\mathrm{wheel,L}}$: 左脚車輪トルク $[\mathrm{N \cdot m}]$
 
 ### 4. 制御性能（統合実行システム）
 
 `run_system.m`による統合実行システムの性能指標：
 
 #### 4.1 制御システム仕様
-- **制御入力数**: 6個 → 4個（33.3%削減）
-- **状態変数**: 20次元（削減モデル位置・速度）
-- **フィードバックゲイン**: $K \in \mathbb{R}^{4 \times 20}$
-- **サンプリング**: 100Hz (T=0.01s) 離散時間制御
+- **制御入力数**: $6 \rightarrow 4$（33.3%削減）
+- **状態変数**: $\boldsymbol{x} \in \mathbb{R}^{20}$（削減モデル位置・速度）
+- **フィードバックゲイン**: $\boldsymbol{K} \in \mathbb{R}^{4 \times 20}$
+- **サンプリング**: $100\,\mathrm{Hz}$ ($T=0.01\,\mathrm{s}$) 離散時間制御
 
 #### 4.2 安定性保証
-- **極配置**: 20個の閉ループ極すべて単位円内 ($|\lambda| < 1$)
+- **極配置**: 20個の閉ループ極すべて単位円内 ($|\lambda_i| < 1, \, \forall i$)
 - **自動検証**: 各極の絶対値と安定性判定を自動表示
 - **膝トルク**: 股関節角度に基づく2次関数で自動生成
 
 #### 4.3 実装効率
 - **一括実行**: 5段階プロセスの自動化
-- **パラメータ統合**: T, Q, R の一元管理
+- **パラメータ統合**: $T, \boldsymbol{Q}, \boldsymbol{R}$ の一元管理
 - **計算効率**: 制御則計算の高速化
 
 ## 注意事項
