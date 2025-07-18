@@ -58,15 +58,22 @@
 run_system
 ```
 
+**統合実行フロー（run_system.m）**：
+1. **[1/3]** 削減モデルテスト実行
+2. **[2/5]** 制御設計パラメータ設定（T, Q, R）
+3. **[3/5]** 削減モデル制御器設計
+4. **[4/5]** 100Hz制御サンプリング用離散化
+5. **[5/5]** フィードバックゲイン表示と安定性確認
+
 ### 個別実行（詳細確認・デバッグ用）
 ```matlab
-% 1. 削減モデルテスト（膝トルク統合の確認）
+% 削減モデルテスト（膝トルク統合の確認）
 run_reduced_model_test
 
-% 2. 削減モデル制御器設計
+% 削減モデル制御器設計
 run_reduced_control_test
 
-% 3. 制御実装情報表示
+% 制御実装情報表示
 display_control_implementation
 ```
 
@@ -94,14 +101,17 @@ verify_optimal_controller
 ### パラメータ変更方法
 
 #### 制御パラメータ（推奨方法）
-`run_system.m`の上部で直接設定変更：
+`run_system.m`の行16-26で直接設定変更：
 ```matlab
 % サンプリング周期設定
 T_sampling = 0.01;  % 100Hz制御サンプリング [s]
 
-% LQR重み行列設定
+% LQR重み行列設定（20次元状態変数用）
 Q_weights = [100, 100, 100, 50, 50, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
-R_weights = [1, 1, 1, 1];
+%           [ベース位置×3, ベース姿勢×3, 関節位置×4, ベース速度×3, ベース角速度×3, 関節速度×4]
+
+% 制御入力重み行列（4次元制御入力用）
+R_weights = [1, 1, 1, 1];  % [右股関節, 右車輪, 左股関節, 左車輪]
 ```
 
 #### 物理パラメータ変更時
@@ -162,55 +172,61 @@ tune_lqr_weights.m            # LQR重み調整
 verify_optimal_controller.m   # 制御器検証
 ```
 
-### 統合実行・テストスクリプト
+### 統合実行システム
 ```
 run_system.m                  # 統合実行ファイル（推奨）
 run_reduced_model_test.m      # 削減モデルテスト
-run_reduced_control_test.m    # 削減モデル制御テスト
+run_reduced_control_test.m    # 削減モデル制御器設計
 display_control_implementation.m # 制御実装情報表示
+discretize_linear_model.m     # 離散化関数（統合実行で使用）
 ```
 
-### 従来テスト・検証スクリプト（参考用）
+### 従来システム（参考用）
 ```
-run_dynamics_test.m           # 動力学テスト
-run_constrained_dynamics_test.m # 制約条件テスト
+run_dynamics_test.m           # 基本動力学テスト
+run_constrained_dynamics_test.m # 制約条件付き動力学テスト
 run_linearization_test.m      # 線形化テスト
 run_discretization_test.m     # 離散化テスト
-verify_optimal_controller.m   # 制御器検証
 tune_lqr_weights.m           # LQR重み調整
+verify_optimal_controller.m   # 制御器検証
+```
+
+### その他のユーティリティ
+```
+display_control_performance.m # 制御性能表示
+display_robot_graph.m        # ロボット図表示
+display_system_summary.m     # システム概要表示
+show_results.m               # 結果表示
+visualize_robot.m            # ロボット可視化
 ```
 
 ## 膝関節ミミック制約
 
 ### 1. 制約条件
-```matlab
-% 膝関節角度制約
-theta2_R = 2 * theta1_R;  % 右膝関節
-theta2_L = 2 * theta1_L;  % 左膝関節
 
-% 速度制約
-dtheta2_R = 2 * dtheta1_R;
-dtheta2_L = 2 * dtheta1_L;
+膝関節角度制約：
+$$\theta_{2R} = 2\theta_{1R}, \quad \theta_{2L} = 2\theta_{1L}$$
 
-% 加速度制約
-ddtheta2_R = 2 * ddtheta1_R;
-ddtheta2_L = 2 * ddtheta1_L;
-```
+速度制約：
+$$\dot{\theta}_{2R} = 2\dot{\theta}_{1R}, \quad \dot{\theta}_{2L} = 2\dot{\theta}_{1L}$$
+
+加速度制約：
+$$\ddot{\theta}_{2R} = 2\ddot{\theta}_{1R}, \quad \ddot{\theta}_{2L} = 2\ddot{\theta}_{1L}$$
 
 ### 2. 膝トルクの2次関数
-```matlab
-% 膝トルク自動生成
-tau_knee = 0.000718 * theta1^2 + (-0.006939) * theta1 + 0.990022;
-```
+
+膝トルク自動生成：
+$$\tau_{knee} = 0.000718\theta_1^2 - 0.006939\theta_1 + 0.990022$$
 
 ### 3. 仮想仕事の原理による統合
-```matlab
-% 仮想変位: δtheta1, δtheta2 = 2*δtheta1
-% 仮想仕事: δW = tau1*δtheta1 + tau2*δtheta2
-%              = tau1*δtheta1 + tau2*2*δtheta1
-%              = (tau1 + 2*tau2)*δtheta1
-% 等価トルク: tau_equiv = tau1 + 2*tau2
-```
+
+仮想変位：$\delta\theta_1, \delta\theta_2 = 2\delta\theta_1$
+
+仮想仕事：
+$$\delta W = \tau_1\delta\theta_1 + \tau_2\delta\theta_2 = \tau_1\delta\theta_1 + \tau_2(2\delta\theta_1) = (\tau_1 + 2\tau_2)\delta\theta_1$$
+
+等価トルク：
+$$\tau_{equiv} = \tau_1 + 2\tau_2$$
 
 ### 4. 制御自由度の削減
 - **元の系**: 12DOF → 6個の関節トルク入力
@@ -224,60 +240,60 @@ tau_knee = 0.000718 * theta1^2 + (-0.006939) * theta1 + 0.990022;
 
 本実装では**単位ベクトル法**を使用して効率的に運動方程式を導出します：
 
-```
-M(q)q̈ + C(q,q̇)q̇ + G(q) = τ + J^T λ
-```
+$$M(q)\ddot{q} + C(q,\dot{q})\dot{q} + G(q) = \tau + J^T \lambda$$
 
 ここで：
-- `M(q)`: 慣性行列
-- `C(q,q̇)`: コリオリ・遠心力項
-- `G(q)`: 重力項
-- `τ`: 関節トルク
-- `J^T λ`: 制約力
+- $M(q)$: 慣性行列
+- $C(q,\dot{q})$: コリオリ・遠心力項
+- $G(q)$: 重力項
+- $\tau$: 関節トルク
+- $J^T \lambda$: 制約力
 
 ### 2. 制約条件
 
 **床接触制約（両車輪が床面に接触）**：
-```
-Φ(q) = [z_right_wheel; z_left_wheel] = 0
-```
+$$\Phi(q) = \begin{bmatrix} z_{right\_wheel} \\ z_{left\_wheel} \end{bmatrix} = 0$$
 
 **膝関節制約**：
-```
-Φ_joint(q) = [theta2_R - 2*theta1_R; theta2_L - 2*theta1_L] = 0
-```
+$$\Phi_{joint}(q) = \begin{bmatrix} \theta_{2R} - 2\theta_{1R} \\ \theta_{2L} - 2\theta_{1L} \end{bmatrix} = 0$$
 
 制約の時間微分：
-```
-J(q)q̇ = 0  （速度制約）
-J̇q̇ + Jq̈ = 0  （加速度制約）
-```
+$$J(q)\dot{q} = 0 \quad \text{（速度制約）}$$
+$$\dot{J}\dot{q} + J\ddot{q} = 0 \quad \text{（加速度制約）}$$
 
 ### 3. 制約付き運動方程式とラグランジュ未定乗数法
 
 #### 3.1 制約条件の統合
 
 床接触制約と膝関節制約を統合：
-```
-Φ_total(q) = [z_right_wheel - wheel_radius; 
-              z_left_wheel - wheel_radius;
-              theta2_R - 2*theta1_R;
-              theta2_L - 2*theta1_L] = 0
-```
+$$\Phi_{total}(q) = \begin{bmatrix} 
+z_{right\_wheel} - r_{wheel} \\ 
+z_{left\_wheel} - r_{wheel} \\
+\theta_{2R} - 2\theta_{1R} \\
+\theta_{2L} - 2\theta_{1L}
+\end{bmatrix} = 0$$
 
 #### 3.2 制約付き運動方程式
 
-```
-[M(q)  -J^T(q)] [q̈]   [-C(q,q̇)q̇ - G(q) + τ]
-[J(q)    0    ] [λ] = [-J̇(q,q̇)q̇           ]
-```
+$$\begin{bmatrix} 
+M(q) & -J^T(q) \\ 
+J(q) & 0 
+\end{bmatrix} 
+\begin{bmatrix} 
+\ddot{q} \\ 
+\lambda 
+\end{bmatrix} = 
+\begin{bmatrix} 
+-C(q,\dot{q})\dot{q} - G(q) + \tau \\ 
+-\dot{J}(q,\dot{q})\dot{q} 
+\end{bmatrix}$$
 
 #### 3.3 ラグランジュ乗数の物理的意味
 
-- **λ(1)**: 右車輪の床反力 [N]
-- **λ(2)**: 左車輪の床反力 [N]
-- **λ(3)**: 右膝関節の制約力 [Nm]
-- **λ(4)**: 左膝関節の制約力 [Nm]
+- $\lambda_1$: 右車輪の床反力 [N]
+- $\lambda_2$: 左車輪の床反力 [N]
+- $\lambda_3$: 右膝関節の制約力 [Nm]
+- $\lambda_4$: 左膝関節の制約力 [Nm]
 
 ### 4. 削減モデルの構築
 
@@ -302,25 +318,21 @@ C_expand = [eye(6),    zeros(6,4);     % ベース部分
 
 ### 5. 線形化
 
-平衡点 `(q₀, q̇₀ = 0)` 周りでTaylor 1次展開：
+平衡点 $(q_0, \dot{q}_0 = 0)$ 周りでTaylor 1次展開：
 
-```
-δẋ = A δx + B δu
-```
+$$\delta\dot{x} = A \delta x + B \delta u$$
 
 削減モデルでは：
-- 状態変数: 20次元 → 20次元（削減前後で同じ）
+- 状態変数: 20次元（削減モデルの位置・速度）
 - 入力変数: 6次元 → 4次元（33.3%削減）
-- システム行列: 20×20 → 20×20
-- 入力行列: 20×6 → 20×4
+- システム行列: $A \in \mathbb{R}^{20 \times 20}$
+- 入力行列: $B \in \mathbb{R}^{20 \times 4}$
 
 ### 6. 離散化
 
 ゼロ次ホールド（ZOH）による厳密離散化：
 
-```
-x[k+1] = Aₑ x[k] + Bₑ u[k]
-```
+$$x[k+1] = A_d x[k] + B_d u[k]$$
 
 推奨サンプリング時間：
 - **T = 0.01s (100Hz)**: 安定・実用的（推奨）
@@ -329,19 +341,13 @@ x[k+1] = Aₑ x[k] + Bₑ u[k]
 ### 7. LQR最適制御
 
 削減モデルでのコスト関数：
-```
-J = ∫₀^∞ (x^T Q x + u^T R u) dt
-```
+$$J = \sum_{k=0}^{\infty} (x[k]^T Q x[k] + u[k]^T R u[k])$$
 
 最適フィードバックゲイン：
-```
-u = -K x,  K = R⁻¹ B^T P
-```
+$$u = -K x, \quad K = (R + B_d^T P B_d)^{-1} B_d^T P A_d$$
 
 制御入力：
-```
-u = [tau1_R, tau_wheel_R, tau1_L, tau_wheel_L]
-```
+$$u = \begin{bmatrix} \tau_{1R} \\ \tau_{wheel\_R} \\ \tau_{1L} \\ \tau_{wheel\_L} \end{bmatrix}$$
 
 ## 実装詳細
 
@@ -414,18 +420,16 @@ R = 0.001 * eye(4);        % 制御入力（超低重み）
 ### 3. 制御実装
 
 #### 3.1 制御入力の計算
-```matlab
-u = -K * (x - x_eq) + u_eq
-```
+$$u = -K (x - x_{eq}) + u_{eq}$$
 
 **詳細：**
-- **x**: 現在の状態変数 (20次元)
-- **x_eq**: 平衡点状態変数 (20次元)
-- **(x - x_eq)**: 状態変数の偏差 (20次元)
-- **K**: フィードバックゲイン行列 (4×20)
-- **-K * (x - x_eq)**: 偏差に基づくフィードバック制御量 (4次元)
-- **u_eq**: 平衡点制御入力 (4次元)
-- **u**: 最終制御入力 (4次元)
+- $x \in \mathbb{R}^{20}$: 現在の状態変数
+- $x_{eq} \in \mathbb{R}^{20}$: 平衡点状態変数
+- $(x - x_{eq}) \in \mathbb{R}^{20}$: 状態変数の偏差
+- $K \in \mathbb{R}^{4 \times 20}$: フィードバックゲイン行列
+- $-K (x - x_{eq}) \in \mathbb{R}^{4}$: 偏差に基づくフィードバック制御量
+- $u_{eq} \in \mathbb{R}^{4}$: 平衡点制御入力
+- $u \in \mathbb{R}^{4}$: 最終制御入力
 
 #### 3.2 制御の物理的意味
 1. **状態偏差の検出**: (x - x_eq) で目標状態からのずれを計算
@@ -451,22 +455,38 @@ end
 
 #### 3.4 制御入力の構成
 削減モデルの制御入力（4次元）：
-```matlab
-u = [tau1_R_equiv;  % 右脚股関節等価トルク（膝トルク統合済み）
-     wheel_R;       % 右脚車輪トルク
-     tau1_L_equiv;  % 左脚股関節等価トルク（膝トルク統合済み）
-     wheel_L];      % 左脚車輪トルク
-```
+$$u = \begin{bmatrix} 
+\tau_{1R,equiv} \\ 
+\tau_{wheel,R} \\ 
+\tau_{1L,equiv} \\ 
+\tau_{wheel,L} 
+\end{bmatrix}$$
 
-### 4. 制御性能（削減モデル）
+ここで：
+- $\tau_{1R,equiv}$: 右脚股関節等価トルク（膝トルク統合済み）
+- $\tau_{wheel,R}$: 右脚車輪トルク
+- $\tau_{1L,equiv}$: 左脚股関節等価トルク（膝トルク統合済み）
+- $\tau_{wheel,L}$: 左脚車輪トルク
 
-最適制御器の性能指標：
+### 4. 制御性能（統合実行システム）
+
+`run_system.m`による統合実行システムの性能指標：
+
+#### 4.1 制御システム仕様
 - **制御入力数**: 6個 → 4個（33.3%削減）
-- **膝トルク**: 股関節角度に基づき自動生成
-- **安定性**: 制約条件により向上（全極 |λ|<1）
-- **計算効率**: 制御則計算が高速化
+- **状態変数**: 20次元（削減モデル位置・速度）
+- **フィードバックゲイン**: $K \in \mathbb{R}^{4 \times 20}$
 - **サンプリング**: 100Hz (T=0.01s) 離散時間制御
-- **極配置**: 20個の閉ループ極すべて単位円内で安定
+
+#### 4.2 安定性保証
+- **極配置**: 20個の閉ループ極すべて単位円内 ($|\lambda| < 1$)
+- **自動検証**: 各極の絶対値と安定性判定を自動表示
+- **膝トルク**: 股関節角度に基づく2次関数で自動生成
+
+#### 4.3 実装効率
+- **一括実行**: 5段階プロセスの自動化
+- **パラメータ統合**: T, Q, R の一元管理
+- **計算効率**: 制御則計算の高速化
 
 ## 注意事項
 
