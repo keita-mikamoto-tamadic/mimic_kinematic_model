@@ -118,17 +118,63 @@ fprintf('\n[6/6] フィードバックゲイン行列表示と安定性確認中
 % 制御器データの読み込み
 load('reduced_lqr_controller.mat');
 
-fprintf('\n=== フィードバックゲイン行列 ===\n');
+fprintf('\n=== システム行列 A (離散化) ===\n');
+fprintf('Ad = \n');
+fprintf('サイズ: %d × %d\n', size(Ad));
+for i = 1:size(Ad,1)
+    fprintf('行%2d: ', i);
+    for j = 1:size(Ad,2)
+        fprintf('%8.4f ', Ad(i,j));
+    end
+    fprintf('\n');
+end
+
+fprintf('\n=== 入力行列 B (離散化) ===\n');
+fprintf('Bd = \n');
+fprintf('サイズ: %d × %d\n', size(Bd));
+for i = 1:size(Bd,1)
+    fprintf('行%2d: ', i);
+    for j = 1:size(Bd,2)
+        fprintf('%8.4f ', Bd(i,j));
+    end
+    fprintf('\n');
+end
+
+fprintf('\n=== 最終重み行列 Q ===\n');
+fprintf('Q = \n');
+Q_final = reduced_controller.Q;
+fprintf('サイズ: %d × %d\n', size(Q_final));
+for i = 1:size(Q_final,1)
+    fprintf('行%2d: ', i);
+    for j = 1:size(Q_final,2)
+        fprintf('%8.4f ', Q_final(i,j));
+    end
+    fprintf('\n');
+end
+
+fprintf('\n=== 最終重み行列 R ===\n');
+fprintf('R = \n');
+R_final = reduced_controller.R;
+fprintf('サイズ: %d × %d\n', size(R_final));
+for i = 1:size(R_final,1)
+    fprintf('行%2d: ', i);
+    for j = 1:size(R_final,2)
+        fprintf('%8.4f ', R_final(i,j));
+    end
+    fprintf('\n');
+end
+
+fprintf('\n=== フィードバックゲイン行列 K ===\n');
 fprintf('K = \n');
 K = reduced_controller.K;
-for i = 1:4
-    fprintf('行%d: ', i);
-    for j = 1:20
+fprintf('サイズ: %d × %d\n', size(K));
+for i = 1:size(K,1)
+    fprintf('行%2d: ', i);
+    for j = 1:size(K,2)
         fprintf('%8.4f ', K(i,j));
     end
     fprintf('\n');
 end
-fprintf('サイズ: %d × %d\n', size(reduced_controller.K));
 fprintf('制御則: u = -K * (x - x_eq) + u_eq\n');
 
 %% 5. LQR制御器の極計算と安定性確認
