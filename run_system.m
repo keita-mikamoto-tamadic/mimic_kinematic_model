@@ -6,41 +6,38 @@ addpath('./function_utill');
 fprintf('=== 脚車輪型倒立振子削減モデル制御システム ===\n\n');
 
 %% 1. 削減モデルテスト実行
-fprintf('[1/3] 削減モデルテスト実行中...\n');
+fprintf('[1/6] 削減モデルテスト実行中...\n');
 run_reduced_model_test;
 
 %% 2. 制御設計パラメータ設定
-fprintf('\n[2/5] 制御設計パラメータ設定中...\n');
+fprintf('\n[2/6] 制御設計パラメータ設定中...\n');
 
 % サンプリング周期設定
 T_sampling = 0.01;  % 100Hz制御サンプリング [s]
 fprintf('制御サンプリング周期: T = %.3f [s] (%.0f Hz)\n', T_sampling, 1/T_sampling);
 
-% LQR重み行列設定
-% 状態重み行列 Q (20x20)
-Q_weights = [100, 100, 100, 50, 50, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
-Q_matrix = diag(Q_weights);
+% 重み調整方針の選択
+weight_tuning_method = 'basic';  % 'basic', 'attitude', 'high', 'iterative', 'none'
+fprintf('重み調整方針: %s\n', weight_tuning_method);
 
-% 制御入力重み行列 R (4x4)
-R_weights = [1, 1, 1, 1];  % 制御入力重み (均等)
-R_matrix = diag(R_weights);
+% 重み調整方針をワークスペースに保存
+assignin('base', 'weight_tuning_method', weight_tuning_method);
 
-fprintf('LQR重み設定:\n');
-fprintf('  状態重み Q: ベース位置=%.0f, ベース姿勢=%.0f, 関節=%.0f\n', ...
-    Q_weights(1), Q_weights(4), Q_weights(7));
-fprintf('  入力重み R: 制御入力=%.0f (均等)\n', R_weights(1));
+% デフォルト重み設定 (重み調整なしの場合)
+Q_weights_default = [100, 100, 100, 50, 50, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+R_weights_default = [1, 1, 1, 1];  % 制御入力重み (均等)
 
 % パラメータをワークスペースに保存（run_reduced_control_testで使用）
 assignin('base', 'T_sampling_override', T_sampling);
-assignin('base', 'Q_matrix_override', Q_matrix);
-assignin('base', 'R_matrix_override', R_matrix);
+assignin('base', 'Q_matrix_override', diag(Q_weights_default));
+assignin('base', 'R_matrix_override', diag(R_weights_default));
 
 %% 3. 削減モデル制御器設計
-fprintf('\n[3/5] 削減モデル制御器設計中...\n');
+fprintf('\n[3/6] 削減モデル制御器設計中...\n');
 run_reduced_control_test;
 
 %% 4. 100Hz制御サンプリング用離散化
-fprintf('\n[4/5] 100Hz制御サンプリング用離散化中...\n');
+fprintf('\n[4/6] 100Hz制御サンプリング用離散化中...\n');
 
 % 削減モデルの線形化データを読み込み
 load('reduced_linear_model.mat');
@@ -65,8 +62,58 @@ discrete_reduced_model.method = 'zoh';
 save('discrete_reduced_model.mat', 'discrete_reduced_model');
 fprintf('離散化モデルを discrete_reduced_model.mat に保存しました\n');
 
-%% 5. フィードバックゲイン行列表示と安定性確認
-fprintf('\n[5/5] フィードバックゲイン行列表示と安定性確認中...\n');
+%% 5. LQR重み調整
+fprintf('\n[5/6] LQR重み調整中...\n');
+
+% モデル情報の構造化
+model_info = struct();
+model_info.n_states = 20;
+model_info.n_inputs = 4;
+model_info.sampling_time = T_sampling;
+
+% 重み調整方針による分岐
+weight_tuning_method = evalin('base', 'weight_tuning_method');
+switch weight_tuning_method
+    case 'basic'
+        [Q_tuned, R_tuned, K_tuned, stability_info] = tune_basic_weights(Ad, Bd, model_info);
+    case 'attitude'
+        [Q_tuned, R_tuned, K_tuned, stability_info] = tune_attitude_weights(Ad, Bd, model_info);
+    case 'high'
+        [Q_tuned, R_tuned, K_tuned, stability_info] = tune_high_weights(Ad, Bd, model_info);
+    case 'iterative'
+        [Q_tuned, R_tuned, K_tuned, stability_info] = tune_iterative_weights(Ad, Bd, model_info);
+    case 'none'
+        fprintf('重み調整をスキップします（デフォルト重み使用）\n');
+        Q_tuned = diag(Q_weights_default);
+        R_tuned = diag(R_weights_default);
+        [K_tuned, ~, ~] = dlqr(Ad, Bd, Q_tuned, R_tuned);
+        
+        % 基本的な安定性情報
+        Ad_cl = Ad - Bd * K_tuned;
+        eigenvalues_cl = eig(Ad_cl);
+        stability_info = struct();
+        stability_info.is_stable = all(abs(eigenvalues_cl) < 1);
+        stability_info.max_eigenvalue = max(abs(eigenvalues_cl));
+        stability_info.stability_margin = 1 - max(abs(eigenvalues_cl));
+        stability_info.control_norm = norm(K_tuned);
+        stability_info.eigenvalues = eigenvalues_cl;
+        stability_info.method = 'none';
+    otherwise
+        error('未知の重み調整方針: %s', weight_tuning_method);
+end
+
+% 調整された重みをオーバーライド
+if ~strcmp(weight_tuning_method, 'none')
+    assignin('base', 'Q_matrix_override', Q_tuned);
+    assignin('base', 'R_matrix_override', R_tuned);
+    
+    % 制御器の再設計
+    fprintf('\n調整された重みで制御器を再設計中...\n');
+    run_reduced_control_test;
+end
+
+%% 6. フィードバックゲイン行列表示と安定性確認
+fprintf('\n[6/6] フィードバックゲイン行列表示と安定性確認中...\n');
 
 % 制御器データの読み込み
 load('reduced_lqr_controller.mat');
@@ -125,11 +172,22 @@ end
 
 fprintf('\n=== システム実行完了 ===\n');
 fprintf('制御システムの準備が完了しました。\n');
-fprintf('- 100Hz制御サンプリング (T=%.3fs) で離散化済み\n', T_sampling);
+fprintf('- 100Hz制御サンプリング (T=%.3fs) で離散化済み\n', 0.01);
+% 重み調整方針の取得
+weight_tuning_method = evalin('base', 'weight_tuning_method');
+fprintf('- 重み調整方針: %s\n', weight_tuning_method);
+
 if all_stable
     fprintf('- LQR制御器は安定 (全極 |λ|<1)\n');
 else
     fprintf('- LQR制御器は不安定 (要調整)\n');
+end
+
+% 重み調整結果の表示
+if ~strcmp(weight_tuning_method, 'none')
+    fprintf('\n=== 重み調整結果 ===\n');
+    fprintf('調整方針: %s\n', weight_tuning_method);
+    fprintf('調整済み制御器が適用されました\n');
 end
 
 end
