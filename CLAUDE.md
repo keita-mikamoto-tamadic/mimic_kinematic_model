@@ -8,19 +8,32 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 主要な実行コマンド
 
-### 基本テスト実行
+### 【推奨】統合実行ファイル
 ```matlab
-% 運動学テスト
-run_kinematics_test
-
-% 動力学テスト（非制約）
-run_dynamics_test
-
-% 制約条件付き動力学テスト
-run_constrained_dynamics_test
+% システム実行（推奨）
+run_system
 ```
 
-### 線形化・制御器設計
+**統合実行フロー（run_system.m）**：
+1. 削減モデルテスト実行
+2. 制御設計パラメータ設定（T, Q, R）
+3. 削減モデル制御器設計
+4. 100Hz制御サンプリング用離散化
+5. フィードバックゲイン表示と極安定性確認
+
+### 個別実行ファイル（詳細確認用）
+```matlab
+% 1. 削減モデルのテスト実行
+run_reduced_model_test
+
+% 2. 削減モデルの制御器設計
+run_reduced_control_test
+
+% 3. 制御実装情報の表示
+display_control_implementation
+```
+
+### 従来システム（参考用）
 ```matlab
 % 線形化実行
 run_linearization_test
@@ -28,14 +41,22 @@ run_linearization_test
 % 離散化実行
 run_discretization_test
 
-% LQR重み調整（重要！）
+% LQR重み調整
 tune_lqr_weights
 
 % 制御器検証
 verify_optimal_controller
 ```
 
-### パラメータ変更
+### 制御パラメータ変更（推奨）
+```matlab
+% run_system.m の上部で直接設定変更
+T_sampling = 0.01;  % サンプリング周期 [s]
+Q_weights = [100, 100, 100, 50, 50, 50, ...];  % 状態重み
+R_weights = [1, 1, 1, 1];  % 入力重み
+```
+
+### 物理パラメータ変更
 ```matlab
 % パラメータ定義ファイルを編集
 edit param_definition.m
@@ -120,8 +141,46 @@ MATLABの`dlqr`関数を使用して離散時間リカッチ方程式を解く�
 - 制約力の物理的意味を理解して実装されている
 
 ## 生成されるファイル
+
+### 統合実行（run_system）で生成
+- `reduced_linear_model.mat`: 削減モデル線形化結果
+- `reduced_lqr_controller.mat`: 削減モデルLQR制御器
+- `discrete_reduced_model.mat`: 100Hz離散化モデル
+
+### 従来システムで生成（参考用）
 - `linear_model.mat`: 線形化モデル
 - `discrete_model.mat`: 離散化モデル
 - `optimal_lqr_controller.mat`: 最適制御器
 
 これらのファイルは各段階の実行結果を保存し、次の段階で使用されます。
+
+## 実装方針と注意事項
+
+### 表示・出力方針
+1. **統合実行による効率化**: `run_system.m`で全工程を一括実行
+2. **実制御に必要な情報のみ表示**: 
+   - ロボットモデル表示（確認用）
+   - LQR制御ゲイン（4×20行列）
+   - 極安定性確認（全極 |λ|<1）
+   - 制御入力と状態変数の順番・説明
+3. **パラメータの一元管理**: サンプリング周期・LQR重みを`run_system.m`で直接設定
+
+### 推奨実行フロー
+```matlab
+% 統合実行ファイル（推奨）
+run_system
+```
+
+### 制御パラメータ調整
+```matlab
+% run_system.m 内で直接変更
+T_sampling = 0.01;  % 100Hz制御サンプリング
+Q_weights = [100, 100, 100, 50, 50, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+R_weights = [1, 1, 1, 1];
+```
+
+### 実制御実装用ファイル
+```matlab
+% 制御実装に必要な情報表示
+display_control_implementation
+```

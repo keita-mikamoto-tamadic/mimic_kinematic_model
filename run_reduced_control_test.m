@@ -109,7 +109,13 @@ fprintf('  可観測性: %s\n', iif(rank_Po == n_states, '可観測', '不可観
 
 %% 4. 離散時間モデルの生成
 
-T = 0.01;  % サンプリング時間 [s]
+% サンプリング時間の設定（オーバーライド対応）
+if evalin('base', 'exist(''T_sampling_override'', ''var'')')
+    T = evalin('base', 'T_sampling_override');
+    fprintf('サンプリング時間をオーバーライド: %.3f s\n', T);
+else
+    T = 0.01;  % デフォルトサンプリング時間 [s]
+end
 sys_continuous = ss(A, B, C, D);
 sys_discrete = c2d(sys_continuous, T, 'zoh');
 
@@ -124,9 +130,20 @@ fprintf('  離散系の最大固有値: %.4f\n', max(abs(eig(Ad))));
 
 %% 5. LQR制御器設計
 
-% 重み行列の設定
-Q = diag([100, 100, 100, 50, 50, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);  % 状態重み
-R = diag([1, 1, 1, 1]);  % 入力重み
+% 重み行列の設定（オーバーライド対応）
+if evalin('base', 'exist(''Q_matrix_override'', ''var'')')
+    Q = evalin('base', 'Q_matrix_override');
+    fprintf('状態重み行列をオーバーライド\n');
+else
+    Q = diag([100, 100, 100, 50, 50, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);  % デフォルト状態重み
+end
+
+if evalin('base', 'exist(''R_matrix_override'', ''var'')')
+    R = evalin('base', 'R_matrix_override');
+    fprintf('入力重み行列をオーバーライド\n');
+else
+    R = diag([1, 1, 1, 1]);  % デフォルト入力重み
+end
 
 % 離散時間LQR
 [K, S, P] = dlqr(Ad, Bd, Q, R);
@@ -191,8 +208,20 @@ reduced_controller.model_reduced = model_reduced;
 
 save('reduced_lqr_controller.mat', 'reduced_controller');
 
+% 削減線形化モデルの保存
+reduced_linear_model = struct();
+reduced_linear_model.A = A;
+reduced_linear_model.B = B;
+reduced_linear_model.C = C;
+reduced_linear_model.D = D;
+reduced_linear_model.x0 = x0;
+reduced_linear_model.u0 = u0;
+reduced_linear_model.model_reduced = model_reduced;
+save('reduced_linear_model.mat', 'reduced_linear_model');
+
 fprintf('\n制御器保存完了\n');
-fprintf('  ファイル名: reduced_lqr_controller.mat\n');
+fprintf('  制御器ファイル名: reduced_lqr_controller.mat\n');
+fprintf('  線形化ファイル名: reduced_linear_model.mat\n');
 
 %% 9. 結果サマリー
 

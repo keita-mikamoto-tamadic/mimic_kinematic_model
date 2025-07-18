@@ -52,37 +52,59 @@
 
 ## 実行手順
 
-### 1. 基本テスト（推奨順序）
+### 【推奨】統合実行
 ```matlab
-% 1. 基本動力学テスト
-run_dynamics_test
+% 制御システム全体の統合実行（推奨）
+run_system
+```
 
-% 2. 削減モデルテスト（膝トルク統合の確認）
+### 個別実行（詳細確認・デバッグ用）
+```matlab
+% 1. 削減モデルテスト（膝トルク統合の確認）
 run_reduced_model_test
 
-% 3. 制約条件付き動力学テスト
-run_constrained_dynamics_test
+% 2. 削減モデル制御器設計
+run_reduced_control_test
+
+% 3. 制御実装情報表示
+display_control_implementation
 ```
 
-### 2. 線形化・制御器設計
+### 従来システム（参考用）
 ```matlab
-% 4. 線形化実行
+% 基本動力学テスト
+run_dynamics_test
+
+% 制約条件付き動力学テスト
+run_constrained_dynamics_test
+
+% 線形化実行
 run_linearization_test
 
-% 5. 離散化実行
+% 離散化実行
 run_discretization_test
 
-% 6. LQR制御器設計
+% LQR重み調整
 tune_lqr_weights
-```
 
-### 3. 制御器検証
-```matlab
-% 7. 制御器性能検証
+% 制御器検証
 verify_optimal_controller
 ```
 
-### 4. パラメータ変更時の手順
+### パラメータ変更方法
+
+#### 制御パラメータ（推奨方法）
+`run_system.m`の上部で直接設定変更：
+```matlab
+% サンプリング周期設定
+T_sampling = 0.01;  % 100Hz制御サンプリング [s]
+
+% LQR重み行列設定
+Q_weights = [100, 100, 100, 50, 50, 50, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+R_weights = [1, 1, 1, 1];
+```
+
+#### 物理パラメータ変更時
 ```matlab
 % パラメータ定義ファイルを編集
 edit param_definition.m
@@ -90,7 +112,8 @@ edit param_definition.m
 % モデル再構築
 model_definition_numeric
 
-% 上記の手順1-3を再実行
+% システム再実行
+run_system
 ```
 
 ## ファイル構成
@@ -139,14 +162,22 @@ tune_lqr_weights.m            # LQR重み調整
 verify_optimal_controller.m   # 制御器検証
 ```
 
-### テスト・検証スクリプト
+### 統合実行・テストスクリプト
+```
+run_system.m                  # 統合実行ファイル（推奨）
+run_reduced_model_test.m      # 削減モデルテスト
+run_reduced_control_test.m    # 削減モデル制御テスト
+display_control_implementation.m # 制御実装情報表示
+```
+
+### 従来テスト・検証スクリプト（参考用）
 ```
 run_dynamics_test.m           # 動力学テスト
-run_reduced_model_test.m      # 削減モデルテスト
 run_constrained_dynamics_test.m # 制約条件テスト
 run_linearization_test.m      # 線形化テスト
 run_discretization_test.m     # 離散化テスト
-run_reduced_control_test.m    # 削減モデル制御テスト
+verify_optimal_controller.m   # 制御器検証
+tune_lqr_weights.m           # LQR重み調整
 ```
 
 ## 膝関節ミミック制約
@@ -185,6 +216,7 @@ tau_knee = 0.000718 * theta1^2 + (-0.006939) * theta1 + 0.990022;
 - **元の系**: 12DOF → 6個の関節トルク入力
 - **削減系**: 10DOF → 4個の制御入力（股関節×2、車輪×2）
 - **膝トルク**: 股関節角度に基づき自動生成
+- **100Hz制御**: T=0.01s サンプリングで離散時間最適制御
 
 ## 理論的背景
 
@@ -431,9 +463,10 @@ u = [tau1_R_equiv;  % 右脚股関節等価トルク（膝トルク統合済み�
 最適制御器の性能指標：
 - **制御入力数**: 6個 → 4個（33.3%削減）
 - **膝トルク**: 股関節角度に基づき自動生成
-- **安定性**: 制約条件により向上
+- **安定性**: 制約条件により向上（全極 |λ|<1）
 - **計算効率**: 制御則計算が高速化
-- **サンプリング**: 100Hz (0.01秒)
+- **サンプリング**: 100Hz (T=0.01s) 離散時間制御
+- **極配置**: 20個の閉ループ極すべて単位円内で安定
 
 ## 注意事項
 
@@ -467,3 +500,4 @@ u = [tau1_R_equiv;  % 右脚股関節等価トルク（膝トルク統合済み�
 - 2024-07: 線形化・LQR制御器設計完成
 - 2024-07: ホイール半径を実機仕様（38.975mm）に更新、ラグランジュ未定乗数法の詳細解説を追加
 - 2024-07: 膝関節ミミック制約統合、膝トルク2次関数自動生成機能追加
+- 2024-07: 統合実行ファイル`run_system.m`実装、100Hz制御サンプリング・LQR極安定性確認機能追加
