@@ -348,7 +348,10 @@ $$\boldsymbol{x}[k+1] = \boldsymbol{A}_{\mathrm{d}} \boldsymbol{x}[k] + \boldsym
 $$J = \sum_{k=0}^{\infty} \left( \boldsymbol{x}[k]^{\mathsf{T}} \boldsymbol{Q} \boldsymbol{x}[k] + \boldsymbol{u}[k]^{\mathsf{T}} \boldsymbol{R} \boldsymbol{u}[k] \right)$$
 
 最適フィードバックゲイン：
-$$\boldsymbol{u} = -\boldsymbol{K} \boldsymbol{x}, \quad \boldsymbol{K} = \left(\boldsymbol{R} + \boldsymbol{B}_{\mathrm{d}}^{\mathsf{T}} \boldsymbol{P} \boldsymbol{B}_{\mathrm{d}}\right)^{-1} \boldsymbol{B}_{\mathrm{d}}^{\mathsf{T}} \boldsymbol{P} \boldsymbol{A}_{\mathrm{d}}$$
+$$\begin{align}
+\boldsymbol{u} &= -\boldsymbol{K} \boldsymbol{x} \\
+\boldsymbol{K} &= \left(\boldsymbol{R} + \boldsymbol{B}_{\mathrm{d}}^{\mathsf{T}} \boldsymbol{P} \boldsymbol{B}_{\mathrm{d}}\right)^{-1} \boldsymbol{B}_{\mathrm{d}}^{\mathsf{T}} \boldsymbol{P} \boldsymbol{A}_{\mathrm{d}}
+\end{align}$$
 
 制御入力：
 $$\boldsymbol{u} = \begin{bmatrix} \tau_{1,\mathrm{R}} \\ \tau_{\mathrm{wheel,R}} \\ \tau_{1,\mathrm{L}} \\ \tau_{\mathrm{wheel,L}} \end{bmatrix}$$
